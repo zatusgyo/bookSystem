@@ -121,6 +121,7 @@ CREATE TABLE tb_order (
     payment_method  VARCHAR(20)                                  COMMENT '支付方式: ALIPAY/WECHAT',
     payment_status  VARCHAR(20)     DEFAULT 'UNPAID'             COMMENT '支付状态: UNPAID/PAID/REFUNDING/REFUNDED',
     payment_time    DATETIME                                     COMMENT '支付时间',
+    payment_trade_no VARCHAR(64)                                  COMMENT '支付交易流水号',
     order_status    VARCHAR(20)     DEFAULT 'PENDING'            COMMENT '订单状态: PENDING/PROCESSING/SHIPPED/DELIVERED/CANCELLED',
     receiver_name   VARCHAR(50)                                  COMMENT '收货人姓名',
     receiver_phone  VARCHAR(20)                                  COMMENT '收货人手机号',
@@ -152,6 +153,24 @@ CREATE TABLE tb_order_item (
     create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
     INDEX idx_order_id (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单项表';
+
+-- ============================================================
+-- 7. 支付记录表（模拟支付流水）
+-- ============================================================
+DROP TABLE IF EXISTS tb_payment_record;
+CREATE TABLE tb_payment_record (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT  COMMENT '记录ID',
+    order_id        BIGINT          NOT NULL                     COMMENT '订单ID',
+    order_no        VARCHAR(30)                                  COMMENT '订单编号（冗余）',
+    amount          DECIMAL(10,2)   NOT NULL                     COMMENT '支付金额',
+    payment_method  VARCHAR(20)                                  COMMENT '支付方式: ALIPAY/WECHAT',
+    trade_no        VARCHAR(64)     NOT NULL UNIQUE              COMMENT '交易流水号',
+    status          VARCHAR(20)     DEFAULT 'PROCESSING'         COMMENT '支付状态: PROCESSING/SUCCESS/FAILED',
+    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP    COMMENT '支付发起时间',
+    complete_time   DATETIME                                     COMMENT '支付完成时间',
+    INDEX idx_order_id (order_id),
+    INDEX idx_trade_no (trade_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付记录表';
 
 -- ============================================================
 -- 初始化数据

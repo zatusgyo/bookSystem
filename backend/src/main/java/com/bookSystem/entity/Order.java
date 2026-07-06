@@ -44,6 +44,9 @@ public class Order implements Serializable {
     /** 支付时间 */
     private LocalDateTime paymentTime;
 
+    /** 支付交易流水号（模拟: PAY20240101..., 真实接入后为支付宝/微信返回的transaction_id） */
+    private String paymentTradeNo;
+
     /** 订单状态: PENDING-待付款, PROCESSING-处理中, SHIPPED-已发货, DELIVERED-已签收, CANCELLED-已取消 */
     private String orderStatus;
 

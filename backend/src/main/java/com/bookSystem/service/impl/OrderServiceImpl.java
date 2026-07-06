@@ -8,10 +8,12 @@ import com.bookSystem.common.BusinessException;
 import com.bookSystem.entity.Book;
 import com.bookSystem.entity.Order;
 import com.bookSystem.entity.OrderItem;
+import com.bookSystem.entity.PaymentRecord;
 import com.bookSystem.mapper.BookMapper;
 import com.bookSystem.mapper.OrderItemMapper;
 import com.bookSystem.mapper.OrderMapper;
 import com.bookSystem.service.OrderService;
+import com.bookSystem.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final BookMapper bookMapper;
     private final OrderItemMapper orderItemMapper;
     private final OrderMapper orderMapper;
+    private final PaymentService paymentService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -111,12 +114,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new BusinessException("订单已支付或已取消");
         }
 
-        // TODO: 接入支付宝/微信支付 SDK
-        // 此处模拟支付成功
+        // 调用支付服务（当前为模拟实现，后续可切换为真实支付宝/微信支付）
+        PaymentRecord paymentRecord = paymentService.pay(order, paymentMethod);
+
+        // 支付成功，更新订单状态
         order.setPaymentMethod(paymentMethod);
+        order.setPaymentTradeNo(paymentRecord.getTradeNo());
         order.setPaymentStatus("PAID");
         order.setPaidAmount(order.getTotalAmount());
-        order.setPaymentTime(LocalDateTime.now());
+        order.setPaymentTime(paymentRecord.getCompleteTime());
         order.setOrderStatus("PROCESSING");
 
         this.updateById(order);

@@ -167,22 +167,47 @@ PUT /api/order/pay/{orderId}?paymentMethod=ALIPAY
 ```
 - `paymentMethod`: `ALIPAY`（支付宝）/ `WECHAT`（微信支付）
 
-### 4.3 取消订单
+**支付响应**:
+```json
+{
+  "code": 200,
+  "message": "支付成功",
+  "data": {
+    "orderNo": "ORD1704528000001",
+    "paymentMethod": "ALIPAY",
+    "paymentTradeNo": "ALIPAY20240101120000123456",
+    "paidAmount": 79.00,
+    "paymentStatus": "PAID",
+    "orderStatus": "PROCESSING"
+  }
+}
+```
+
+> ⚠️ **学生项目说明**: 支付为模拟实现，生成虚拟交易流水号。95%概率成功/5%失败（演示用）。
+> 答辩时可展示完整支付流程。详见 `docs/payment-mock-guide.md`。
+
+### 4.3 查询支付状态
+```
+GET /api/payment/query?tradeNo=ALIPAY20240101120000123456
+```
+**响应**: 返回 `PaymentRecord`（交易流水号、金额、支付方式、状态、时间）
+
+### 4.5 取消订单
 ```
 PUT /api/order/cancel/{orderId}
 ```
 
-### 4.4 发货（管理员）
+### 4.6 发货（管理员）
 ```
 PUT /api/order/ship/{orderId}
 ```
 
-### 4.5 查询用户订单
+### 4.7 查询用户订单
 ```
 GET /api/order/user/{userId}?page=1&size=10
 ```
 
-### 4.6 订单详情
+### 4.8 订单详情
 ```
 GET /api/order/{orderId}
 ```

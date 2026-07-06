@@ -90,8 +90,9 @@ Category ───< Book
 | `tb_book` | 图书表 | isbn, title, sale_price, borrow_mode, available_stock |
 | `tb_category` | 分类表 | name, parent_id（支持两级分类） |
 | `tb_borrow_record` | 借阅记录 | borrow_no, user_id, book_id, status, due_date |
-| `tb_order` | 订单表 | order_no, total_amount, payment_status, order_status |
+| `tb_order` | 订单表 | order_no, total_amount, payment_status, order_status, payment_trade_no |
 | `tb_order_item` | 订单项 | order_id, book_id, quantity, subtotal |
+| `tb_payment_record` | 支付流水 | order_id, trade_no, payment_method, amount, status |
 
 > 完整建表语句见 `backend/src/main/resources/db/schema.sql`
 
@@ -118,7 +119,46 @@ PENDING ──支付──→ PROCESSING ──发货──→ SHIPPED ──签
 
 ---
 
-## 四、接口设计概要
+## 四、支付模块设计
+
+### 4.1 学生项目方案
+
+由于支付宝/微信支付需要**企业资质**申请商户号，学生项目采用**模拟支付**方案：
+
+- **完整保留支付流程**：选择支付方式 → 生成交易流水 → 支付结果反馈
+- **接口设计规范**：`PaymentService` 接口与真实 SDK 调用模式一致
+- **可无缝升级**：后续只需新建实现类（如 `AlipayServiceImpl`），替换依赖即可接入真实支付
+
+### 4.2 支付流程
+
+```
+用户点击支付
+    │
+    ▼
+POST /api/order/pay/{orderId}?paymentMethod=ALIPAY
+    │
+    ▼
+PaymentService.pay(order, method)
+    │
+    ├── 生成模拟交易流水号 (如 ALIPAY20240101120000123456)
+    ├── 写入 tb_payment_record 表
+    ├── 95% 概率模拟成功 / 5% 概率模拟失败
+    │
+    ▼
+更新订单状态: UNPAID → PAID → PROCESSING
+```
+
+### 4.3 扩展为真实支付（仅需3步）
+
+1. 在 `pom.xml` 中取消支付宝/微信 SDK 注释
+2. 新建 `AlipayServiceImpl` 实现 `PaymentService` 接口
+3. 在 `application.yml` 中配置商户密钥
+
+> 详细说明见 `docs/payment-mock-guide.md`
+
+---
+
+## 五、接口设计概要
 
 | 模块 | 前缀 | 核心接口 |
 |------|------|----------|
