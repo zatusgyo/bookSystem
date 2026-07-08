@@ -1,8 +1,11 @@
 package com.bookSystem.controller;
 
 import com.bookSystem.common.Result;
+import com.bookSystem.dto.CreateOrderDTO;
 import com.bookSystem.entity.Order;
+import com.bookSystem.entity.OrderItem;
 import com.bookSystem.entity.PaymentRecord;
+import com.bookSystem.service.OrderItemService;
 import com.bookSystem.service.OrderService;
 import com.bookSystem.service.impl.MockPaymentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,22 +29,13 @@ public class OrderController {
 
     private final OrderService orderService;
     private final MockPaymentServiceImpl mockPaymentService;
+    private final OrderItemService orderItemService;
 
     @Operation(summary = "创建订单")
     @PostMapping
-    public Result<Order> createOrder(@RequestBody Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
-        @SuppressWarnings("unchecked")
-        List<Long> bookIds = ((List<Integer>) params.get("bookIds")).stream()
-                .map(Long::valueOf).collect(java.util.stream.Collectors.toList());
-        @SuppressWarnings("unchecked")
-        List<Integer> quantities = (List<Integer>) params.get("quantities");
-        String receiverName = (String) params.get("receiverName");
-        String receiverPhone = (String) params.get("receiverPhone");
-        String receiverAddress = (String) params.get("receiverAddress");
-
-        Order order = orderService.createOrder(userId, bookIds, quantities,
-                receiverName, receiverPhone, receiverAddress);
+    public Result<Order> createOrder(@Valid @RequestBody CreateOrderDTO dto) {
+        Order order = orderService.createOrder(dto.getUserId(), dto.getBookIds(), dto.getQuantities(),
+                dto.getReceiverName(), dto.getReceiverPhone(), dto.getReceiverAddress());
         return Result.success("订单创建成功", order);
     }
 
@@ -95,10 +90,25 @@ public class OrderController {
         return Result.success(result);
     }
 
-    @Operation(summary = "查询订单详情")
+    @Operation(summary = "查询订单详情（含订单项）")
     @GetMapping("/{orderId}")
-    public Result<Order> getOrderDetail(@PathVariable Long orderId) {
+    public Result<Map<String, Object>> getOrderDetail(@PathVariable Long orderId) {
         Order order = orderService.getById(orderId);
-        return Result.success(order);
+        if (order == null) {
+            return Result.error("订单不存在");
+        }
+        List<OrderItem> items = orderItemService.getOrderItems(orderId);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("order", order);
+        data.put("items", items);
+        return Result.success(data);
+    }
+
+    @Operation(summary = "查询订单项列表")
+    @GetMapping("/{orderId}/items")
+    public Result<List<OrderItem>> getOrderItems(@PathVariable Long orderId) {
+        List<OrderItem> items = orderItemService.getOrderItems(orderId);
+        return Result.success(items);
     }
 }
