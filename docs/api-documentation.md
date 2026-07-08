@@ -57,8 +57,14 @@ POST /api/user/register
 ```
 POST /api/user/login
 ```
-**参数**: `username`, `password`（query参数）
-**响应**: 返回用户信息
+**请求体**: `LoginDTO`
+```json
+{
+  "username": "zhangsan",
+  "password": "123456"
+}
+```
+**响应**: 返回用户信息 + JWT Token
 
 ---
 
@@ -70,6 +76,12 @@ GET /api/user/{id}
 ### 1.4 更新用户信息
 ```
 PUT /api/user/{id}
+```
+**请求体**: `UpdateUserDTO`（nickname/email/phone/avatar 可选）
+
+### 1.5 修改密码
+```
+PUT /api/user/{id}/password?oldPassword=xxx&newPassword=yyy
 ```
 
 ---
@@ -121,7 +133,15 @@ DELETE /api/book/{id}
 
 ### 3.1 借阅图书
 ```
-POST /api/borrow?userId=1&bookId=1&borrowMode=SINGLE
+POST /api/borrow
+```
+**请求体**: `BorrowBookDTO`
+```json
+{
+  "userId": 1,
+  "bookId": 1,
+  "borrowMode": "SINGLE"
+}
 ```
 - `borrowMode`: `SINGLE`（单人）/ `MULTI`（多人共读）
 
@@ -211,10 +231,119 @@ GET /api/order/user/{userId}?page=1&size=10
 ```
 GET /api/order/{orderId}
 ```
+**响应**: 返回订单详情（含订单项列表 OrderItemVO）
 
 ---
 
-## 五、状态码说明
+## 五、分类模块 `/api/category`
+
+### 5.1 获取分类树（公开）
+```
+GET /api/category/tree
+```
+**响应**: 返回 `List<CategoryVO>`，树形结构含 children
+
+### 5.2 获取子分类（公开）
+```
+GET /api/category/children?parentId=0
+```
+
+### 5.3 获取所有分类（平级）
+```
+GET /api/category
+```
+
+### 5.4 添加分类
+```
+POST /api/category
+```
+**请求体**: `Category`（name, parentId, sortOrder）
+
+### 5.5 更新分类
+```
+PUT /api/category/{id}
+```
+
+### 5.6 删除分类
+```
+DELETE /api/category/{id}
+```
+> 有子分类时不允许删除
+
+---
+
+## 六、评论模块 `/api/comment`
+
+### 6.1 发布评论
+```
+POST /api/comment
+```
+**请求体**: `AddCommentDTO`
+```json
+{
+  "bookId": 1,
+  "userId": 1,
+  "username": "张三",
+  "rating": 4,
+  "content": "非常棒的一本书"
+}
+```
+
+### 6.2 查询图书评论列表（公开）
+```
+GET /api/comment/book/{bookId}
+```
+
+### 6.3 查询图书平均评分（公开）
+```
+GET /api/comment/rating/{bookId}
+```
+
+---
+
+## 七、管理员模块 `/api/admin`
+
+> 所有接口需要 ADMIN 角色 + JWT Token
+
+### 7.1 首页统计数据
+```
+GET /api/admin/stats
+```
+**响应**: userCount, bookCount, activeBorrowCount, overdueBorrowCount, pendingOrderCount, totalOrderCount
+
+### 7.2 用户列表（分页+搜索）
+```
+GET /api/admin/users?page=1&size=10&keyword=zhang
+```
+
+### 7.3 启用/禁用用户
+```
+PUT /api/admin/users/{id}/status?status=1
+```
+
+### 7.4 图书列表（分页+搜索+筛选）
+```
+GET /api/admin/books?page=1&size=10&keyword=Java&categoryId=9&status=1
+```
+
+### 7.5 上架/下架图书
+```
+PUT /api/admin/books/{id}/status?status=0
+```
+
+### 7.6 借阅记录列表（分页+状态筛选）
+```
+GET /api/admin/borrows?page=1&size=10&status=BORROWING&userId=1
+```
+
+### 7.7 订单列表（分页+状态筛选）
+```
+GET /api/admin/orders?page=1&size=10&orderStatus=PENDING&paymentStatus=UNPAID&userId=1
+```
+
+---
+
+## 八、状态码说明
 
 | 状态码 | 含义 |
 |--------|------|
@@ -226,10 +355,15 @@ GET /api/order/{orderId}
 
 ---
 
-## 六、待办事项（组员实现）
+## 九、已完成功能
 
-- [ ] 添加 JWT Token 认证机制（目前接口无鉴权）
-- [ ] 接入支付宝/微信支付 SDK
-- [ ] 物流轨迹查询接口
-- [ ] 图书评论/评分接口
-- [ ] 管理员后台接口（用户管理、图书管理、数据统计）
+- [x] JWT Token 认证机制（注册/登录返回Token，拦截器校验）
+- [x] 接口参数校验（DTO + @Valid）
+- [x] 物流轨迹查询接口
+- [x] 图书评论/评分接口
+- [x] 管理员后台接口（数据统计、用户/图书/订单管理）
+- [x] 分类管理接口（树形结构）
+- [x] 修改密码接口
+- [x] 订单详情含订单项
+- [ ] 接入支付宝/微信支付真实 SDK（当前为模拟支付）
+- [ ] 物流第三方接口对接

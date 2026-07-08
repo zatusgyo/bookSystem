@@ -47,25 +47,26 @@
 
 ### 2.2 后端分层
 ```
-controller/    → 接收HTTP请求、参数校验、返回响应
+controller/    → 接收HTTP请求、DTO参数校验、调用Service、返回VO
 service/       → 业务逻辑层（接口 + impl实现）
 mapper/        → 数据访问层（MyBatis-Plus BaseMapper）
-entity/        → 数据库实体映射
-dto/           → 数据传输对象（请求参数封装）
-vo/            → 视图对象（响应数据封装）
+entity/        → 数据库实体映射（10个实体）
+dto/           → 请求数据传输对象（7个DTO，含 @Valid 校验）
+vo/            → 视图对象（7个VO，数据脱敏与关联数据）
 common/        → 通用类（Result、异常处理、分页）
-config/        → 配置类（CORS、MyBatis-Plus）
+config/        → 配置类（CORS、JWT拦截器、MyBatis-Plus）
+util/          → 工具类（JwtUtils）
 ```
 
 ### 2.3 前端分层
 ```
-views/         → 页面视图（按模块划分: book/ borrow/ purchase/ order/ user/）
+views/         → 页面视图（10个页面，含管理后台）
 components/    → 可复用组件
-router/        → 路由配置
-store/         → Pinia 状态管理
-api/           → API 请求封装
-utils/         → 工具函数（Axios实例等）
-layouts/       → 布局组件
+router/        → 路由配置（含路由守卫）
+store/         → Pinia 状态管理（userStore / cartStore）
+api/           → API 请求封装（8个模块）
+utils/         → 工具函数（Axios实例含拦截器）
+layouts/       → 布局组件（Layout / MainLayout / NavBar）
 ```
 
 ---
@@ -75,11 +76,15 @@ layouts/       → 布局组件
 ### 3.1 E-R 图（核心实体关系）
 
 ```
-User ───< BorrowRecord >─── Book
+User ───< BorrowRecord >─── Book ───< Comment >─── User
   │                           │
   └──< Order >──< OrderItem >─┘
-
+  │               │
+  │               └──< ShippingTrack
+  │
 Category ───< Book
+
+PaymentRecord ─── Order
 ```
 
 ### 3.2 核心表
@@ -93,6 +98,8 @@ Category ───< Book
 | `tb_order` | 订单表 | order_no, total_amount, payment_status, order_status, payment_trade_no |
 | `tb_order_item` | 订单项 | order_id, book_id, quantity, subtotal |
 | `tb_payment_record` | 支付流水 | order_id, trade_no, payment_method, amount, status |
+| `tb_comment` | 图书评论 | book_id, user_id, rating(1-5), content |
+| `tb_shipping_track` | 物流轨迹 | order_id, location, description, track_time |
 
 > 完整建表语句见 `backend/src/main/resources/db/schema.sql`
 
@@ -162,16 +169,20 @@ PaymentService.pay(order, method)
 
 | 模块 | 前缀 | 核心接口 |
 |------|------|----------|
-| 用户 | `/api/user` | POST `/register`, POST `/login`, GET `/{id}`, PUT `/{id}` |
+| 用户 | `/api/user` | POST `/register`, POST `/login`, GET `/{id}`, PUT `/{id}`, PUT `/{id}/password` |
 | 图书 | `/api/book` | POST `/`, GET `/search`, GET `/{id}`, PUT `/{id}`, DELETE `/{id}` |
 | 借阅 | `/api/borrow` | POST `/`（借阅）, PUT `/return/{id}`, PUT `/renew/{id}`, GET `/user/{id}` |
-| 订单 | `/api/order` | POST `/`（创建）, PUT `/pay/{id}`, PUT `/cancel/{id}`, PUT `/ship/{id}`, GET `/user/{id}` |
+| 订单 | `/api/order` | POST `/`（创建）, PUT `/pay/{id}`, PUT `/cancel/{id}`, PUT `/ship/{id}`, GET `/user/{id}`, GET `/{id}` |
+| 分类 | `/api/category` | GET `/tree`, GET `/children`, POST `/`, PUT `/{id}`, DELETE `/{id}` |
+| 评论 | `/api/comment` | POST `/`, GET `/book/{bookId}`, GET `/rating/{bookId}` |
+| 支付 | `/api/payment` | GET `/query` |
+| 管理员 | `/api/admin` | GET `/stats`, GET `/users`, PUT `/users/{id}/status`, GET `/books`, PUT `/books/{id}/status`, GET `/borrows`, GET `/orders` |
 
 > 完整接口文档见 `docs/api-documentation.md`
 
 ---
 
-## 五、非功能需求
+## 六、非功能需求
 
 | 指标 | 要求 |
 |------|------|
@@ -188,22 +199,26 @@ PaymentService.pay(order, method)
 book/
 ├── frontend/                 # Vue 3 前端项目
 │   ├── src/
-│   │   ├── api/              # [组员] API 请求模块
-│   │   ├── components/       # [组员] 公共组件
+│   │   ├── api/              # [组员C] API 请求模块 ✅
+│   │   ├── components/       # 公共组件
+│   │   ├── layouts/          # [组员C] 布局组件 ✅
 │   │   ├── router/           # [组长] 路由配置 ✅
-│   │   ├── store/            # [组员] Pinia 状态管理
+│   │   ├── store/            # [组员C] Pinia 状态管理 ✅
 │   │   ├── utils/            # [组长] Axios 封装 ✅
-│   │   └── views/            # [组员] 各页面视图
+│   │   └── views/            # [组员C] 10个页面视图 ✅
 │   ├── package.json          # [组长] ✅
 │   └── vite.config.js        # [组长] ✅
 ├── backend/                  # Spring Boot 后端项目
 │   ├── src/main/java/com/bookSystem/
 │   │   ├── common/           # [组长] 通用类 ✅
-│   │   ├── config/           # [组长] 配置类 ✅
-│   │   ├── controller/       # [组员] 控制器（已有模板）
-│   │   ├── entity/           # [组长] 实体类 ✅
-│   │   ├── mapper/           # [组员] 数据访问层
-│   │   └── service/          # [组员] 业务逻辑层
+│   │   ├── config/           # [组员B] JWT拦截器 + [组长] CORS ✅
+│   │   ├── controller/       # [组员A] 9个控制器 ✅
+│   │   ├── dto/              # [组员A] 7个请求DTO ✅
+│   │   ├── entity/           # [组长] 10个实体 ✅
+│   │   ├── mapper/           # [组长] Mapper接口 ✅
+│   │   ├── service/          # [组员A] 业务逻辑 ✅
+│   │   ├── utils/            # [组员B] JwtUtils ✅
+│   │   └── vo/               # [组员A] 7个响应VO ✅
 │   ├── src/main/resources/
 │   │   ├── application.yml   # [组长] ✅
 │   │   └── db/schema.sql     # [组长] ✅
@@ -212,5 +227,6 @@ book/
     ├── system-design.md      # 系统设计文档（本文件）
     ├── api-documentation.md  # API 接口规范
     ├── test-plan.md          # 测试计划
+    ├── payment-mock-guide.md # 模拟支付说明
     └── meeting-notes/        # 会议记录
 ```
