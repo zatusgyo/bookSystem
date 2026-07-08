@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-// App 根组件 - 仅作为路由出口
+// App 根组件 - 作为路由出口，由 Layout 组件包裹各页面
 </script>
 
 <style>

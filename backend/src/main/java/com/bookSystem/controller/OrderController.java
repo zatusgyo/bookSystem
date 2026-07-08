@@ -2,12 +2,15 @@ package com.bookSystem.controller;
 
 import com.bookSystem.common.Result;
 import com.bookSystem.entity.Order;
+import com.bookSystem.entity.PaymentRecord;
 import com.bookSystem.service.OrderService;
+import com.bookSystem.service.impl.MockPaymentServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +24,7 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final MockPaymentServiceImpl mockPaymentService;
 
     @Operation(summary = "创建订单")
     @PostMapping
@@ -46,6 +50,25 @@ public class OrderController {
                                   @RequestParam(defaultValue = "ALIPAY") String paymentMethod) {
         Order order = orderService.payOrder(orderId, paymentMethod);
         return Result.success("支付成功", order);
+    }
+
+    @Operation(summary = "发起模拟支付（获取交易流水号）")
+    @PostMapping("/pay/{orderId}/initiate")
+    public Result<Map<String, Object>> initiatePayment(@PathVariable Long orderId,
+                                                        @RequestParam(defaultValue = "ALIPAY") String paymentMethod) {
+        Order order = orderService.getById(orderId);
+        if (order == null) {
+            return Result.error("订单不存在");
+        }
+        PaymentRecord record = mockPaymentService.initiatePayment(order, paymentMethod);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("tradeNo", record.getTradeNo());
+        data.put("orderNo", order.getOrderNo());
+        data.put("amount", order.getTotalAmount());
+        data.put("paymentMethod", paymentMethod);
+        data.put("orderId", orderId);
+        return Result.success(data);
     }
 
     @Operation(summary = "取消订单")

@@ -201,6 +201,37 @@ INSERT INTO tb_category (name, parent_id, sort_order) VALUES
 INSERT INTO tb_user (username, password, nickname, role, status) VALUES
 ('admin', 'e10adc3949ba59abbe56e057f20f883e', '系统管理员', 'ADMIN', 0);
 
+-- ============================================================
+-- 8. 图书评论表
+-- ============================================================
+DROP TABLE IF EXISTS tb_comment;
+CREATE TABLE tb_comment (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT  COMMENT '评论ID',
+    book_id         BIGINT          NOT NULL                     COMMENT '图书ID',
+    user_id         BIGINT          NOT NULL                     COMMENT '用户ID',
+    username        VARCHAR(50)                                  COMMENT '用户名（冗余）',
+    rating          TINYINT         NOT NULL DEFAULT 5           COMMENT '评分（1-5）',
+    content         TEXT                                         COMMENT '评论内容',
+    is_deleted      TINYINT         DEFAULT 0                    COMMENT '逻辑删除',
+    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+    INDEX idx_book_id (book_id),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图书评论表';
+
+-- ============================================================
+-- 9. 物流轨迹表
+-- ============================================================
+DROP TABLE IF EXISTS tb_shipping_track;
+CREATE TABLE tb_shipping_track (
+    id              BIGINT          PRIMARY KEY AUTO_INCREMENT  COMMENT '轨迹ID',
+    order_id        BIGINT          NOT NULL                     COMMENT '订单ID',
+    order_no        VARCHAR(30)                                  COMMENT '订单编号（冗余）',
+    location        VARCHAR(255)                                 COMMENT '物流节点',
+    description     VARCHAR(255)                                 COMMENT '物流描述',
+    track_time      DATETIME        DEFAULT CURRENT_TIMESTAMP    COMMENT '轨迹时间',
+    INDEX idx_order_id (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='物流轨迹表';
+
 -- 插入测试图书
 INSERT INTO tb_book (isbn, title, author, publisher, category_id, description, total_stock, available_stock, sale_price, borrow_mode) VALUES
 ('978-7-111-11111-1', 'Java编程思想', 'Bruce Eckel', '机械工业出版社', 9, 'Java经典入门书籍，全面讲解Java语言核心概念', 50, 50, 79.00, 'SINGLE'),

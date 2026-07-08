@@ -28,6 +28,13 @@ public class Result<T> implements Serializable {
     private T data;
 
     /**
+     * 成功响应（仅消息，无数据）
+     */
+    public static Result<Void> ok(String message) {
+        return new Result<>(200, message, null);
+    }
+
+    /**
      * 成功响应（无数据）
      */
     public static <T> Result<T> success() {

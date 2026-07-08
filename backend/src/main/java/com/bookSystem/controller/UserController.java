@@ -3,12 +3,15 @@ package com.bookSystem.controller;
 import com.bookSystem.common.Result;
 import com.bookSystem.entity.User;
 import com.bookSystem.service.UserService;
+import com.bookSystem.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户控制器
@@ -20,6 +23,7 @@ import javax.validation.Valid;
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtils jwtUtils;
 
     @Operation(summary = "用户注册")
     @PostMapping("/register")
@@ -30,9 +34,14 @@ public class UserController {
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public Result<User> login(@RequestParam String username, @RequestParam String password) {
+    public Result<Map<String, Object>> login(@RequestParam String username, @RequestParam String password) {
         User user = userService.login(username, password);
-        return Result.success("登录成功", user);
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole());
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("user", user);
+        data.put("token", token);
+        return Result.success("登录成功", data);
     }
 
     @Operation(summary = "获取用户信息")
@@ -50,6 +59,6 @@ public class UserController {
     public Result<Void> updateUserInfo(@PathVariable Long id, @RequestBody User user) {
         user.setId(id);
         userService.updateUserInfo(user);
-        return Result.success("更新成功");
+        return Result.ok("更新成功");
     }
 }

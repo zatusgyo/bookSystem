@@ -16,12 +16,11 @@ import java.time.format.DateTimeFormatter;
 /**
  * 模拟支付服务实现
  * <p>
- * <b>学生项目方案说明：</b>
- * 由于支付宝/微信支付需要企业资质申请商户号，学生项目无法真实接入。
- * 本实现模拟完整的支付流程，保留真实接口的调用模式，
- * 答辩时可完整演示"选择支付方式 → 生成交易流水 → 支付成功"的全链路。
- * <p>
- * 后续若需真实接入，替换步骤见 {@link PaymentService} 接口文档。
+ * 支持两种支付流程：
+ * <ol>
+ *   <li>直接支付：pay() — 立即返回支付结果（95%成功率）</li>
+ *   <li>模拟支付：initiatePayment() → 前端展示支付页面 → confirmPayment() — 模拟真实扫码支付流程</li>
+ * </ol>
  */
 @Slf4j
 @Service
@@ -30,19 +29,12 @@ public class MockPaymentServiceImpl implements PaymentService {
 
     private final PaymentRecordMapper paymentRecordMapper;
 
-    /** 模拟支付成功率：95%（偶尔失败更真实） */
-    private static final double SUCCESS_RATE = 0.95;
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PaymentRecord pay(Order order, String paymentMethod) {
-        // 1. 生成模拟交易流水号（格式类似真实支付平台）
         String tradeNo = generateTradeNo(paymentMethod);
+        boolean success = Math.random() < 0.95;
 
-        // 2. 模拟支付处理
-        boolean success = Math.random() < SUCCESS_RATE;
-
-        // 3. 创建支付记录
         PaymentRecord record = new PaymentRecord();
         record.setOrderId(order.getId());
         record.setOrderNo(order.getOrderNo());
@@ -64,8 +56,58 @@ public class MockPaymentServiceImpl implements PaymentService {
         paymentRecordMapper.insert(record);
 
         if (!success) {
-            throw new BusinessException("支付失败，请重试（模拟网络波动）");
+            throw new BusinessException("支付失败，请重试");
         }
+
+        return record;
+    }
+
+    /**
+     * 发起模拟支付（支付中状态）
+     * <p>返回支付记录供前端展示支付页面，实际支付结果稍后通过 confirmPayment 确认。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PaymentRecord initiatePayment(Order order, String paymentMethod) {
+        String tradeNo = generateTradeNo(paymentMethod);
+
+        PaymentRecord record = new PaymentRecord();
+        record.setOrderId(order.getId());
+        record.setOrderNo(order.getOrderNo());
+        record.setAmount(order.getTotalAmount());
+        record.setPaymentMethod(paymentMethod);
+        record.setTradeNo(tradeNo);
+        record.setStatus("PROCESSING");
+
+        paymentRecordMapper.insert(record);
+        log.info("[模拟支付] 发起支付 - 订单号: {}, 流水号: {}, 金额: {}",
+                order.getOrderNo(), tradeNo, order.getTotalAmount());
+
+        return record;
+    }
+
+    /**
+     * 确认支付（模拟支付宝回调）
+     * <p>前端倒计时结束后调用，将支付状态从 PROCESSING 改为 SUCCESS。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PaymentRecord confirmPayment(String tradeNo) {
+        PaymentRecord record = paymentRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PaymentRecord>()
+                        .eq(PaymentRecord::getTradeNo, tradeNo));
+
+        if (record == null) {
+            throw new BusinessException("交易流水号不存在");
+        }
+        if (!"PROCESSING".equals(record.getStatus())) {
+            throw new BusinessException("支付状态异常，当前状态: " + record.getStatus());
+        }
+
+        record.setStatus("SUCCESS");
+        record.setCompleteTime(LocalDateTime.now());
+        paymentRecordMapper.updateById(record);
+
+        log.info("[模拟支付] 支付确认成功 - 订单号: {}, 流水号: {}, 金额: {}",
+                record.getOrderNo(), tradeNo, record.getAmount());
 
         return record;
     }
@@ -81,14 +123,6 @@ public class MockPaymentServiceImpl implements PaymentService {
         return record;
     }
 
-    /**
-     * 生成模拟交易流水号
-     * <p>
-     * 格式：PAY + 日期时间 + 6位随机数
-     * 示例：ALIPAY20240101120000123456
-     * <p>
-     * 真实接入后，此处替换为支付平台返回的 transaction_id。
-     */
     private String generateTradeNo(String paymentMethod) {
         String prefix = "ALIPAY".equals(paymentMethod) ? "ALIPAY" : "WECHAT";
         String datetime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
@@ -96,9 +130,6 @@ public class MockPaymentServiceImpl implements PaymentService {
         return prefix + datetime + random;
     }
 
-    /**
-     * 获取支付方式中文名（供前端展示）
-     */
     public static String getPaymentMethodName(String code) {
         if ("ALIPAY".equals(code)) return "支付宝";
         if ("WECHAT".equals(code)) return "微信支付";

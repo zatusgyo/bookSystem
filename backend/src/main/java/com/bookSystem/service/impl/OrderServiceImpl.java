@@ -14,6 +14,7 @@ import com.bookSystem.mapper.OrderItemMapper;
 import com.bookSystem.mapper.OrderMapper;
 import com.bookSystem.service.OrderService;
 import com.bookSystem.service.PaymentService;
+import com.bookSystem.service.ShippingTrackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final OrderItemMapper orderItemMapper;
     private final OrderMapper orderMapper;
     private final PaymentService paymentService;
+    private final ShippingTrackService shippingTrackService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -173,6 +175,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         order.setOrderStatus("SHIPPED");
         this.updateById(order);
+
+        // 自动生成物流轨迹
+        shippingTrackService.addTrack(orderId, order.getOrderNo(), "仓库", "订单已出库，等待揽收");
+        shippingTrackService.addTrack(orderId, order.getOrderNo(), "分拣中心", "包裹已到达分拣中心");
+        shippingTrackService.addTrack(orderId, order.getOrderNo(), "运输中", "包裹正在运输中，请耐心等待");
+
         return order;
     }
 

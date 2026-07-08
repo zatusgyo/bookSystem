@@ -3,19 +3,19 @@ import { ElMessage } from 'element-plus'
 
 /**
  * Axios 实例 - API 请求封装
- * TODO: 组员根据实际需要扩展请求拦截器
  */
 const request = axios.create({
   baseURL: '/api',
   timeout: 10000
 })
 
-// 请求拦截器
+// 请求拦截器 - 添加 Token
 request.interceptors.request.use(
   config => {
-    // TODO: 添加 Token 认证头
-    // const token = localStorage.getItem('token')
-    // if (token) config.headers.Authorization = `Bearer ${token}`
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   error => Promise.reject(error)
@@ -27,6 +27,12 @@ request.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
+      // 401 未授权，跳转登录页
+      if (res.code === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userId')
+        window.location.href = '/login'
+      }
       return Promise.reject(new Error(res.message))
     }
     return res

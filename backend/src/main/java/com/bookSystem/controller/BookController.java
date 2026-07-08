@@ -49,7 +49,7 @@ public class BookController {
     public Result<Void> updateBook(@PathVariable Long id, @RequestBody Book book) {
         book.setId(id);
         bookService.updateById(book);
-        return Result.success("更新成功");
+        return Result.ok("更新成功");
     }
 
     @Operation(summary = "下架图书")
@@ -60,6 +60,6 @@ public class BookController {
             book.setStatus(0);
             bookService.updateById(book);
         }
-        return Result.success("下架成功");
+        return Result.ok("下架成功");
     }
 }
