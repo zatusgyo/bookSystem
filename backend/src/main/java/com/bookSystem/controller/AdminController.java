@@ -10,11 +10,13 @@ import com.bookSystem.service.BookService;
 import com.bookSystem.service.BorrowService;
 import com.bookSystem.service.OrderService;
 import com.bookSystem.service.UserService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,18 +51,34 @@ public class AdminController {
 
         long userCount = userService.count();
         long bookCount = bookService.count();
-        long borrowCount = borrowService.count();
-        long orderCount = orderService.count();
+
+        // 统计借阅中/已逾期的记录数
+        LambdaQueryWrapper<BorrowRecord> borrowingWrapper = new LambdaQueryWrapper<>();
+        borrowingWrapper.eq(BorrowRecord::getStatus, "BORROWING");
+        long activeBorrowCount = borrowService.count(borrowingWrapper);
+
+        LambdaQueryWrapper<BorrowRecord> overdueWrapper = new LambdaQueryWrapper<>();
+        overdueWrapper.eq(BorrowRecord::getStatus, "OVERDUE");
+        long overdueBorrowCount = borrowService.count(overdueWrapper);
+
+        // 统计各状态订单数
+        LambdaQueryWrapper<Order> pendingOrderWrapper = new LambdaQueryWrapper<>();
+        pendingOrderWrapper.eq(Order::getOrderStatus, "PENDING");
+        long pendingOrderCount = orderService.count(pendingOrderWrapper);
+
+        long totalOrderCount = orderService.count();
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("userCount", userCount);
         stats.put("bookCount", bookCount);
-        stats.put("borrowCount", borrowCount);
-        stats.put("orderCount", orderCount);
+        stats.put("activeBorrowCount", activeBorrowCount);
+        stats.put("overdueBorrowCount", overdueBorrowCount);
+        stats.put("pendingOrderCount", pendingOrderCount);
+        stats.put("totalOrderCount", totalOrderCount);
         return Result.success(stats);
     }
 
-    @Operation(summary = "用户列表（分页）")
+    @Operation(summary = "用户列表（分页，支持关键词搜索）")
     @GetMapping("/users")
     public Result<IPage<User>> getUserList(
             @RequestParam(defaultValue = "1") Integer page,
@@ -69,8 +87,17 @@ public class AdminController {
             HttpServletRequest request) {
         checkAdmin(request);
 
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(User::getUsername, keyword)
+                            .or().like(User::getNickname, keyword)
+                            .or().like(User::getEmail, keyword)
+                            .or().like(User::getPhone, keyword));
+        }
+        wrapper.orderByDesc(User::getCreateTime);
+
         Page<User> pageParam = new Page<>(page, size);
-        IPage<User> result = userService.page(pageParam);
+        IPage<User> result = userService.page(pageParam, wrapper);
         result.getRecords().forEach(user -> user.setPassword(null));
         return Result.success(result);
     }
@@ -82,24 +109,41 @@ public class AdminController {
         checkAdmin(request);
 
         User user = userService.getById(id);
-        if (user != null) {
-            user.setStatus(status);
-            userService.updateById(user);
+        if (user == null) {
+            return Result.error("用户不存在");
         }
-        return Result.success("操作成功");
+        user.setStatus(status);
+        userService.updateById(user);
+        return Result.ok("操作成功");
     }
 
-    @Operation(summary = "图书列表（分页）")
+    @Operation(summary = "图书列表（分页，支持关键词和分类搜索）")
     @GetMapping("/books")
     public Result<IPage<Book>> getBookList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer status,
             HttpServletRequest request) {
         checkAdmin(request);
 
+        LambdaQueryWrapper<Book> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(Book::getTitle, keyword)
+                            .or().like(Book::getAuthor, keyword)
+                            .or().like(Book::getIsbn, keyword));
+        }
+        if (categoryId != null) {
+            wrapper.eq(Book::getCategoryId, categoryId);
+        }
+        if (status != null) {
+            wrapper.eq(Book::getStatus, status);
+        }
+        wrapper.orderByDesc(Book::getCreateTime);
+
         Page<Book> pageParam = new Page<>(page, size);
-        IPage<Book> result = bookService.page(pageParam);
+        IPage<Book> result = bookService.page(pageParam, wrapper);
         return Result.success(result);
     }
 
@@ -110,36 +154,63 @@ public class AdminController {
         checkAdmin(request);
 
         Book book = bookService.getById(id);
-        if (book != null) {
-            book.setStatus(status);
-            bookService.updateById(book);
+        if (book == null) {
+            return Result.error("图书不存在");
         }
-        return Result.success("操作成功");
+        book.setStatus(status);
+        bookService.updateById(book);
+        return Result.ok("操作成功");
     }
 
-    @Operation(summary = "所有借阅记录（分页）")
+    @Operation(summary = "所有借阅记录（分页，支持状态筛选）")
     @GetMapping("/borrows")
     public Result<IPage<BorrowRecord>> getBorrowList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long userId,
             HttpServletRequest request) {
         checkAdmin(request);
 
+        LambdaQueryWrapper<BorrowRecord> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(BorrowRecord::getStatus, status);
+        }
+        if (userId != null) {
+            wrapper.eq(BorrowRecord::getUserId, userId);
+        }
+        wrapper.orderByDesc(BorrowRecord::getCreateTime);
+
         Page<BorrowRecord> pageParam = new Page<>(page, size);
-        IPage<BorrowRecord> result = borrowService.page(pageParam);
+        IPage<BorrowRecord> result = borrowService.page(pageParam, wrapper);
         return Result.success(result);
     }
 
-    @Operation(summary = "所有订单（分页）")
+    @Operation(summary = "所有订单（分页，支持状态筛选）")
     @GetMapping("/orders")
     public Result<IPage<Order>> getOrderList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String orderStatus,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) Long userId,
             HttpServletRequest request) {
         checkAdmin(request);
 
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(orderStatus)) {
+            wrapper.eq(Order::getOrderStatus, orderStatus);
+        }
+        if (StringUtils.hasText(paymentStatus)) {
+            wrapper.eq(Order::getPaymentStatus, paymentStatus);
+        }
+        if (userId != null) {
+            wrapper.eq(Order::getUserId, userId);
+        }
+        wrapper.orderByDesc(Order::getCreateTime);
+
         Page<Order> pageParam = new Page<>(page, size);
-        IPage<Order> result = orderService.page(pageParam);
+        IPage<Order> result = orderService.page(pageParam, wrapper);
         return Result.success(result);
     }
 }

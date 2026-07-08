@@ -1,6 +1,7 @@
 package com.bookSystem.controller;
 
 import com.bookSystem.common.Result;
+import com.bookSystem.dto.AddCommentDTO;
 import com.bookSystem.entity.Comment;
 import com.bookSystem.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @Tag(name = "图书评论", description = "图书评论评分")
@@ -20,13 +22,10 @@ public class CommentController {
 
     @Operation(summary = "添加评论")
     @PostMapping
-    public Result<Comment> addComment(
-            @RequestParam Long bookId,
-            @RequestParam Long userId,
-            @RequestParam String username,
-            @RequestParam Integer rating,
-            @RequestParam String content) {
-        Comment comment = commentService.addComment(bookId, userId, username, rating, content);
+    public Result<Comment> addComment(@Valid @RequestBody AddCommentDTO dto) {
+        Comment comment = commentService.addComment(
+                dto.getBookId(), dto.getUserId(), dto.getUsername(),
+                dto.getRating(), dto.getContent());
         return Result.success("评论发布成功", comment);
     }
 

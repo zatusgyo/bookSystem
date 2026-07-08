@@ -1,12 +1,17 @@
 package com.bookSystem.controller;
 
 import com.bookSystem.common.Result;
+import com.bookSystem.dto.BorrowBookDTO;
 import com.bookSystem.entity.BorrowRecord;
 import com.bookSystem.service.BorrowService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 /**
  * 借阅控制器
@@ -21,11 +26,8 @@ public class BorrowController {
 
     @Operation(summary = "借阅图书")
     @PostMapping
-    public Result<BorrowRecord> borrowBook(
-            @RequestParam Long userId,
-            @RequestParam Long bookId,
-            @RequestParam(defaultValue = "SINGLE") String borrowMode) {
-        BorrowRecord record = borrowService.borrowBook(userId, bookId, borrowMode);
+    public Result<BorrowRecord> borrowBook(@Valid @RequestBody BorrowBookDTO dto) {
+        BorrowRecord record = borrowService.borrowBook(dto.getUserId(), dto.getBookId(), dto.getBorrowMode());
         return Result.success("借阅成功", record);
     }
 
@@ -49,14 +51,11 @@ public class BorrowController {
             @PathVariable Long userId,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
-        // 使用分页查询
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<BorrowRecord> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        LambdaQueryWrapper<BorrowRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(BorrowRecord::getUserId, userId)
                .orderByDesc(BorrowRecord::getCreateTime);
 
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<BorrowRecord> pageParam =
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        Page<BorrowRecord> pageParam = new Page<>(page, size);
         return Result.success(borrowService.page(pageParam, wrapper));
     }
 }

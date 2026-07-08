@@ -1,12 +1,15 @@
 package com.bookSystem.controller;
 
 import com.bookSystem.common.Result;
+import com.bookSystem.dto.BookSearchDTO;
 import com.bookSystem.entity.Book;
 import com.bookSystem.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 /**
  * 图书控制器
@@ -21,19 +24,16 @@ public class BookController {
 
     @Operation(summary = "添加图书")
     @PostMapping
-    public Result<Book> addBook(@RequestBody Book book) {
+    public Result<Book> addBook(@Valid @RequestBody Book book) {
         Book savedBook = bookService.addBook(book);
         return Result.success("添加成功", savedBook);
     }
 
     @Operation(summary = "搜索图书")
     @GetMapping("/search")
-    public Result<Object> searchBooks(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        Object result = bookService.searchBooks(keyword, categoryId, page, size);
+    public Result<Object> searchBooks(@Valid BookSearchDTO dto) {
+        Object result = bookService.searchBooks(dto.getKeyword(), dto.getCategoryId(),
+                dto.getPage(), dto.getSize());
         return Result.success(result);
     }
 
@@ -56,10 +56,11 @@ public class BookController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteBook(@PathVariable Long id) {
         Book book = bookService.getById(id);
-        if (book != null) {
-            book.setStatus(0);
-            bookService.updateById(book);
+        if (book == null) {
+            return Result.error("图书不存在");
         }
+        book.setStatus(0);
+        bookService.updateById(book);
         return Result.ok("下架成功");
     }
 }

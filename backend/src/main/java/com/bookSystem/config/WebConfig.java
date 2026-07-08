@@ -30,12 +30,13 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/user/login",       // 登录
-                        "/api/user/register",    // 注册
-                        "/api/book/search",      // 图书搜索（公开）
-                        "/api/book/*",           // 图书详情（公开）
-                        "/api/comment/book/*",   // 图书评论列表（公开）
-                        "/api/comment/rating/*"  // 图书评分（公开）
+                        "/api/user/login",          // 登录
+                        "/api/user/register",       // 注册
+                        "/api/book/search",         // 图书搜索（公开）
+                        "/api/book/*",              // 图书详情（公开）
+                        "/api/category/**",         // 分类（公开）
+                        "/api/comment/book/*",      // 图书评论列表（公开）
+                        "/api/comment/rating/*"     // 图书评分（公开）
                 );
     }
 }
