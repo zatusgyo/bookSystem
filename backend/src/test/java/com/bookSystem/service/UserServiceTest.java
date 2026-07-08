@@ -4,6 +4,7 @@ import com.bookSystem.common.BusinessException;
 import com.bookSystem.entity.User;
 import com.bookSystem.mapper.UserMapper;
 import com.bookSystem.service.impl.UserServiceImpl;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ class UserServiceTest {
     @Test
     @DisplayName("正常注册 - 密码应被MD5加密且不返回")
     void register_Success() {
-        when(userMapper.count(any())).thenReturn(0L);
+        when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
         when(userMapper.insert(any(User.class))).thenReturn(1);
 
         User result = userService.register(testUser);
@@ -63,7 +64,7 @@ class UserServiceTest {
     @Test
     @DisplayName("注册时密码应被MD5加密")
     void register_PasswordShouldBeEncrypted() {
-        when(userMapper.count(any())).thenReturn(0L);
+        when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
         when(userMapper.insert(any(User.class))).thenReturn(1);
 
         userService.register(testUser);
@@ -79,7 +80,7 @@ class UserServiceTest {
     @Test
     @DisplayName("重复用户名注册 - 应抛出异常")
     void register_DuplicateUsername_ShouldThrow() {
-        when(userMapper.count(any())).thenReturn(1L);
+        when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
         assertThatThrownBy(() -> userService.register(testUser))
                 .isInstanceOf(BusinessException.class)
