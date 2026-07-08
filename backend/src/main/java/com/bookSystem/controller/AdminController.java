@@ -114,7 +114,7 @@ public class AdminController {
         }
         user.setStatus(status);
         userService.updateById(user);
-        return Result.success("操作成功");
+        return Result.ok("操作成功");
     }
 
     @Operation(summary = "图书列表（分页，支持关键词和分类搜索）")
@@ -159,7 +159,7 @@ public class AdminController {
         }
         book.setStatus(status);
         bookService.updateById(book);
-        return Result.success("操作成功");
+        return Result.ok("操作成功");
     }
 
     @Operation(summary = "所有借阅记录（分页，支持状态筛选）")

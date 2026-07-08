@@ -62,7 +62,7 @@ public class CategoryController {
     public Result<Void> updateCategory(@PathVariable Long id, @RequestBody Category category) {
         category.setId(id);
         categoryService.updateCategory(category);
-        return Result.success("更新成功");
+        return Result.ok("更新成功");
     }
 
     @Operation(summary = "删除分类")
@@ -74,6 +74,6 @@ public class CategoryController {
             return Result.error("该分类下存在子分类，无法删除");
         }
         categoryService.removeById(id);
-        return Result.success("删除成功");
+        return Result.ok("删除成功");
     }
 }

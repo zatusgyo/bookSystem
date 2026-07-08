@@ -90,7 +90,7 @@ public class UserController {
         }
 
         userService.updateUserInfo(user);
-        return Result.success("更新成功");
+        return Result.ok("更新成功");
     }
 
     @Operation(summary = "修改密码")
@@ -116,6 +116,6 @@ public class UserController {
                 newPassword.getBytes(StandardCharsets.UTF_8));
         user.setPassword(newEncrypted);
         userService.updateById(user);
-        return Result.success("密码修改成功");
+        return Result.ok("密码修改成功");
     }
 }
