@@ -1,11 +1,11 @@
 package com.bookSystem.controller;
 
+import com.bookSystem.common.BusinessException;
 import com.bookSystem.common.Result;
-import com.bookSystem.common.PageResult;
 import com.bookSystem.entity.Book;
-import com.bookSystem.entity.User;
 import com.bookSystem.entity.BorrowRecord;
 import com.bookSystem.entity.Order;
+import com.bookSystem.entity.User;
 import com.bookSystem.service.BookService;
 import com.bookSystem.service.BorrowService;
 import com.bookSystem.service.OrderService;
@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,9 +32,21 @@ public class AdminController {
     private final BorrowService borrowService;
     private final OrderService orderService;
 
+    /**
+     * 校验当前请求是否为管理员
+     */
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (role == null || !"ADMIN".equals(role)) {
+            throw new BusinessException(403, "无管理员权限");
+        }
+    }
+
     @Operation(summary = "获取首页统计数据")
     @GetMapping("/stats")
-    public Result<Map<String, Object>> getStats() {
+    public Result<Map<String, Object>> getStats(HttpServletRequest request) {
+        checkAdmin(request);
+
         long userCount = userService.count();
         long bookCount = bookService.count();
         long borrowCount = borrowService.count();
@@ -45,7 +57,6 @@ public class AdminController {
         stats.put("bookCount", bookCount);
         stats.put("borrowCount", borrowCount);
         stats.put("orderCount", orderCount);
-        // 计算销售总额 - 简化：从订单表统计已支付订单
         return Result.success(stats);
     }
 
@@ -54,17 +65,22 @@ public class AdminController {
     public Result<IPage<User>> getUserList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            HttpServletRequest request) {
+        checkAdmin(request);
+
         Page<User> pageParam = new Page<>(page, size);
         IPage<User> result = userService.page(pageParam);
-        // 移除密码
         result.getRecords().forEach(user -> user.setPassword(null));
         return Result.success(result);
     }
 
     @Operation(summary = "启用/禁用用户")
     @PutMapping("/users/{id}/status")
-    public Result<Void> updateUserStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateUserStatus(@PathVariable Long id, @RequestParam Integer status,
+                                          HttpServletRequest request) {
+        checkAdmin(request);
+
         User user = userService.getById(id);
         if (user != null) {
             user.setStatus(status);
@@ -78,7 +94,10 @@ public class AdminController {
     public Result<IPage<Book>> getBookList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            HttpServletRequest request) {
+        checkAdmin(request);
+
         Page<Book> pageParam = new Page<>(page, size);
         IPage<Book> result = bookService.page(pageParam);
         return Result.success(result);
@@ -86,7 +105,10 @@ public class AdminController {
 
     @Operation(summary = "下架/上架图书")
     @PutMapping("/books/{id}/status")
-    public Result<Void> updateBookStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateBookStatus(@PathVariable Long id, @RequestParam Integer status,
+                                          HttpServletRequest request) {
+        checkAdmin(request);
+
         Book book = bookService.getById(id);
         if (book != null) {
             book.setStatus(status);
@@ -95,21 +117,27 @@ public class AdminController {
         return Result.ok("操作成功");
     }
 
-    @Operation(summary = "所有借阅记录（分页，管理员查看）")
+    @Operation(summary = "所有借阅记录（分页）")
     @GetMapping("/borrows")
     public Result<IPage<BorrowRecord>> getBorrowList(
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
+            @RequestParam(defaultValue = "10") Integer size,
+            HttpServletRequest request) {
+        checkAdmin(request);
+
         Page<BorrowRecord> pageParam = new Page<>(page, size);
         IPage<BorrowRecord> result = borrowService.page(pageParam);
         return Result.success(result);
     }
 
-    @Operation(summary = "所有订单（分页，管理员查看）")
+    @Operation(summary = "所有订单（分页）")
     @GetMapping("/orders")
     public Result<IPage<Order>> getOrderList(
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
+            @RequestParam(defaultValue = "10") Integer size,
+            HttpServletRequest request) {
+        checkAdmin(request);
+
         Page<Order> pageParam = new Page<>(page, size);
         IPage<Order> result = orderService.page(pageParam);
         return Result.success(result);

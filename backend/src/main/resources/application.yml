@@ -45,6 +45,10 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+# JWT 配置
+jwt:
+  secret: book-system-secret-key-256bits-book-system-secret-key
+
 # 日志配置
 logging:
   level:

@@ -11,7 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 
 /**
  * JWT 认证拦截器
- * 验证请求头中的 Authorization Bearer token
  */
 @Component
 @RequiredArgsConstructor
@@ -21,14 +20,12 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        // OPTIONS 请求放行（跨域预请求）
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
 
         String token = extractToken(request);
 
-        // 需要认证的接口必须有 Token
         if (token == null) {
             throw new BusinessException(401, "未授权，请先登录");
         }
@@ -37,17 +34,14 @@ public class JwtInterceptor implements HandlerInterceptor {
             throw new BusinessException(401, "Token 已过期，请重新登录");
         }
 
-        // 将用户ID存入 request，方便后续使用
         Long userId = jwtUtils.getUserIdFromToken(token);
+        String role = jwtUtils.getRoleFromToken(token);
         request.setAttribute("userId", userId);
+        request.setAttribute("role", role);
 
         return true;
     }
 
-    /**
-     * 从请求头提取 Token
-     * 格式：Authorization: Bearer <token>
-     */
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {

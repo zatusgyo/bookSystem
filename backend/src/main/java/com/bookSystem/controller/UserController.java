@@ -36,7 +36,7 @@ public class UserController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestParam String username, @RequestParam String password) {
         User user = userService.login(username, password);
-        String token = jwtUtils.generateToken(user.getId(), user.getUsername());
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         Map<String, Object> data = new HashMap<>();
         data.put("user", user);
