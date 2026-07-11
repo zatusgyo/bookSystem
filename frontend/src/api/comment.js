@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 // 添加评论
 export function addComment(bookId, userId, username, rating, content) {
-  return request.post('/comment', null, { params: { bookId, userId, username, rating, content } })
+  return request.post('/comment', { bookId, userId, username, rating, content })
 }
 
 // 获取图书评论列表

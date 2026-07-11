@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 // 借阅图书
 export function borrowBook(userId, bookId, borrowMode) {
-  return request.post('/borrow', null, { params: { userId, bookId, borrowMode } })
+  return request.post('/borrow', { userId, bookId, borrowMode })
 }
 
 // 归还图书
