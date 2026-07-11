@@ -3,7 +3,13 @@
 </template>
 
 <script setup>
-// App 根组件 - 作为路由出口，由 Layout 组件包裹各页面
+import { onMounted } from 'vue'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
+onMounted(() => {
+  userStore.init()
+})
 </script>
 
 <style>
