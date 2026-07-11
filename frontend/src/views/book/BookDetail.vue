@@ -122,6 +122,7 @@ import { addComment, getBookComments, getAverageRating } from '@/api/comment'
 import { useUserStore } from '@/store/user'
 import { useCartStore } from '@/store/cart'
 import { ElMessage } from 'element-plus'
+import { DEFAULT_COVER } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -133,7 +134,7 @@ const borrowing = ref(false)
 const book = ref(null)
 const borrowDialogVisible = ref(false)
 const borrowMode = ref('SINGLE')
-const defaultCover = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A+simple+book+cover+design+with+clean+geometric+patterns+and+soft+colors,+minimalist+style,+suitable+for+a+generic+book+cover&image_size=square'
+const defaultCover = DEFAULT_COVER
 
 // 评论相关
 const comments = ref([])

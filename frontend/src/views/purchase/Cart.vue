@@ -87,6 +87,7 @@ import { useCartStore } from '@/store/cart'
 import { useUserStore } from '@/store/user'
 import { createOrder } from '@/api/order'
 import { ElMessage } from 'element-plus'
+import { DEFAULT_COVER } from '@/utils/constants'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -95,7 +96,7 @@ const userStore = useUserStore()
 const submitting = ref(false)
 const checkoutVisible = ref(false)
 const orderFormRef = ref(null)
-const defaultCover = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A+simple+book+cover+design+with+clean+geometric+patterns+and+soft+colors,+minimalist+style,+suitable+for+a+generic+book+cover&image_size=square'
+const defaultCover = DEFAULT_COVER
 
 const orderForm = reactive({
   receiverName: '',

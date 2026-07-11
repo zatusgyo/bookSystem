@@ -68,6 +68,7 @@ import { ref, onMounted } from 'vue'
 import { searchBooks } from '@/api/book'
 import { Search } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { DEFAULT_COVER } from '@/utils/constants'
 
 const loading = ref(false)
 const keyword = ref('')
@@ -77,7 +78,7 @@ const size = ref(12)
 const total = ref(0)
 const books = ref([])
 const categories = ref([])
-const defaultCover = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A+simple+book+cover+design+with+clean+geometric+patterns+and+soft+colors,+minimalist+style,+suitable+for+a+generic+book+cover&image_size=square'
+const defaultCover = DEFAULT_COVER
 
 onMounted(() => {
   fetchCategories()

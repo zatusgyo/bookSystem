@@ -58,11 +58,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { searchBooks } from '@/api/book'
+import { DEFAULT_COVER } from '@/utils/constants'
 
 const loading = ref(false)
 const books = ref([])
 const hotBooks = ref([])
-const defaultCover = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A+simple+book+cover+design+with+clean+geometric+patterns+and+soft+colors,+minimalist+style,+suitable+for+a+generic+book+cover&image_size=square'
+const defaultCover = DEFAULT_COVER
 
 const banners = [
   { title: '海量图书·畅享阅读', desc: '涵盖计算机、文学、历史等多个领域', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
